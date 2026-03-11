@@ -1,4 +1,7 @@
-import Server, { calculateTokenCount, TokenizerService } from "@musistudio/llms";
+import Server, {
+  calculateTokenCount,
+  TokenizerService,
+} from "@musistudio/llms";
 import { readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 import { join } from "path";
 import fastifyStatic from "@fastify/static";
@@ -25,9 +28,15 @@ import {
 import fastifyMultipart from "@fastify/multipart";
 import AdmZip from "adm-zip";
 
+const { OpenAIAuthService } = require("@musistudio/llms") as {
+  OpenAIAuthService: new (configService?: any, logger?: any) => any;
+};
+
 export const createServer = async (config: any): Promise<any> => {
   const server = new Server(config);
   const app = server.app;
+  const getOpenAIAuthService = () =>
+    new OpenAIAuthService((app as any)._server!.configService, app.log);
 
   app.register(fastifyMultipart, {
     limits: {
@@ -97,6 +106,81 @@ export const createServer = async (config: any): Promise<any> => {
       })
     );
     return { transformers: transformerList };
+  });
+
+  app.get("/api/auth/openai/profiles", async () => {
+    const authService = getOpenAIAuthService();
+    return {
+      profiles: await authService.listProfileStatuses(),
+    };
+  });
+
+  app.get("/api/auth/openai/status", async (req: any, reply: any) => {
+    const authService = getOpenAIAuthService();
+    const profile =
+      ((req.query as any)?.profile as string | undefined) || "default";
+    const status = await authService.getProfileStatus(profile);
+    if (!status) {
+      return reply.status(404).send({ error: "Profile not found" });
+    }
+    return status;
+  });
+
+  app.post("/api/auth/openai/login/start", async (req: any) => {
+    const authService = getOpenAIAuthService();
+    const profile = req.body?.profile || "default";
+    const redirectUri = req.body?.redirectUri;
+    return authService.createAuthSession(profile, redirectUri);
+  });
+
+  app.post("/api/auth/openai/login/complete", async (req: any) => {
+    const authService = getOpenAIAuthService();
+    const { sessionId, code, state, callbackUrl } = req.body || {};
+    if (!sessionId) {
+      throw new Error("sessionId is required");
+    }
+
+    let resolvedCode = code;
+    let resolvedState = state;
+    if (callbackUrl) {
+      const url = new URL(callbackUrl);
+      resolvedCode = resolvedCode || url.searchParams.get("code");
+      resolvedState = resolvedState || url.searchParams.get("state");
+    }
+
+    if (!resolvedCode) {
+      throw new Error("code is required");
+    }
+
+    const profile = await authService.completeAuthSession(
+      sessionId,
+      resolvedCode,
+      resolvedState
+    );
+    return {
+      success: true,
+      profile,
+    };
+  });
+
+  app.post("/api/auth/openai/import-codex", async (req: any) => {
+    const authService = getOpenAIAuthService();
+    const profile = req.body?.profile || "default";
+    const authFile = req.body?.authFile;
+    return {
+      success: true,
+      profile: await authService.importCodexAuthFile(profile, authFile),
+    };
+  });
+
+  app.post("/api/auth/openai/logout", async (req: any, reply: any) => {
+    const authService = getOpenAIAuthService();
+    const profile = req.body?.profile || "default";
+    const deleted = await authService.deleteProfile(profile);
+    if (!deleted) {
+      return reply.status(404).send({ error: "Profile not found" });
+    }
+    return { success: true };
   });
 
   // Add endpoint to save config.json with access control

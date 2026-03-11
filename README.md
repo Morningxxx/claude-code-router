@@ -257,7 +257,56 @@ This command provides an interactive interface to:
 
 The CLI tool validates all inputs and provides helpful prompts to guide you through the configuration process, making it easy to manage complex setups without editing JSON files manually.
 
-### 6. Presets Management
+### 6. OpenAI Codex Auth
+
+`openai-codex` supports two auth sources:
+
+- Compatibility mode: read `~/.codex/auth.json`
+- CCR-managed mode: manage profiles with `ccr auth openai`
+
+Recommended configuration:
+
+```json
+{
+  "PROXY_URL": "http://127.0.0.1:10809",
+  "Providers": [
+    {
+      "name": "openai-codex",
+      "api_base_url": "https://chatgpt.com/backend-api",
+      "api_key": "unused",
+      "models": ["gpt-5.3-codex"],
+      "transformer": {
+        "use": [
+          "openai-responses",
+          [
+            "openai-codex",
+            {
+              "profile": "default",
+              "auth_strategy": "ccr-managed",
+              "use_codex_file_fallback": true
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "Router": {
+    "default": "openai-codex,gpt-5.3-codex"
+  }
+}
+```
+
+Auth management commands:
+
+```shell
+ccr auth openai import-codex --profile default
+ccr auth openai login --profile default
+ccr auth openai list
+ccr auth openai status --profile default
+ccr auth openai logout --profile default
+```
+
+### 7. Presets Management
 
 Presets allow you to save, share, and reuse configurations easily. You can export your current configuration as a preset and install presets from files or URLs.
 
@@ -295,7 +344,7 @@ ccr preset delete my-preset
 │   └── manifest.json    # Contains configuration and metadata
 ```
 
-### 7. Activate Command (Environment Variables Setup)
+### 8. Activate Command (Environment Variables Setup)
 
 The `activate` command allows you to set up environment variables globally in your shell, enabling you to use the `claude` command directly or integrate Claude Code Router with applications built using the Agent SDK.
 

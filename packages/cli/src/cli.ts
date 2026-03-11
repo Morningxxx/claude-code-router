@@ -18,6 +18,7 @@ import { join } from "path";
 import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
 import {handlePresetCommand} from "./utils/preset";
 import { handleInstallCommand } from "./utils/installCommand";
+import { handleOpenAIAuthCommand } from "./utils/openaiAuth";
 
 
 const command = process.argv[2];
@@ -33,6 +34,7 @@ const KNOWN_COMMANDS = [
   "model",
   "preset",
   "install",
+  "auth",
   "activate",
   "env",
   "ui",
@@ -55,6 +57,7 @@ Commands:
   model         Interactive model selection and configuration
   preset        Manage presets (export, install, list, delete)
   install       Install preset from GitHub marketplace
+  auth          Manage OpenAI auth profiles
   activate      Output environment variables for shell integration
   ui            Open the web UI in browser
   -v, version   Show version information
@@ -72,6 +75,7 @@ Examples:
   ccr preset install /path/to/preset     # Install a preset from directory
   ccr preset list                        # List all presets
   ccr install my-preset                  # Install preset from marketplace
+  ccr auth openai login --profile default
   eval "$(ccr activate)"  # Set environment variables globally
   ccr ui
 `;
@@ -271,6 +275,13 @@ async function main() {
     case "install":
       const presetName = process.argv[3];
       await handleInstallCommand(presetName);
+      break;
+    case "auth":
+      if (process.argv[3] !== "openai") {
+        console.log("Usage: ccr auth openai <login|list|status|logout|import-codex>");
+        process.exit(1);
+      }
+      await handleOpenAIAuthCommand(process.argv.slice(4));
       break;
     case "activate":
     case "env":

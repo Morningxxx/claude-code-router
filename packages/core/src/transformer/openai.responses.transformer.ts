@@ -107,6 +107,11 @@ export class OpenAIResponsesTransformer implements Transformer {
       }
     }
 
+    // Codex backend currently rejects requests without explicit instructions.
+    if (!(request as any).instructions) {
+      (request as any).instructions = "";
+    }
+
     request.messages.forEach((message) => {
       if (message.role === "system") return;
 
@@ -199,6 +204,7 @@ export class OpenAIResponsesTransformer implements Transformer {
     }
 
     request.parallel_tool_calls = false;
+    (request as any).store = false;
 
     return request;
   }
@@ -226,7 +232,7 @@ export class OpenAIResponsesTransformer implements Transformer {
         statusText: response.statusText,
         headers: response.headers,
       });
-    } else if (contentType.includes("text/event-stream")) {
+    } else if (contentType.includes("text/event-stream") || (!contentType && response.body)) {
       if (!response.body) {
         return response;
       }

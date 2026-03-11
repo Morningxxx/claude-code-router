@@ -231,7 +231,56 @@ ccr model
 
 CLI 工具验证所有输入并提供有用的提示来引导您完成配置过程，使管理复杂的设置变得容易，无需手动编辑 JSON 文件。
 
-### 6. 预设管理
+### 6. OpenAI Codex Auth
+
+`openai-codex` 支持两种认证来源：
+
+- 兼容模式：读取 `~/.codex/auth.json`
+- CCR 自管模式：使用 `ccr auth openai` 管理 profile
+
+推荐配置：
+
+```json
+{
+  "PROXY_URL": "http://127.0.0.1:10809",
+  "Providers": [
+    {
+      "name": "openai-codex",
+      "api_base_url": "https://chatgpt.com/backend-api",
+      "api_key": "unused",
+      "models": ["gpt-5.3-codex"],
+      "transformer": {
+        "use": [
+          "openai-responses",
+          [
+            "openai-codex",
+            {
+              "profile": "default",
+              "auth_strategy": "ccr-managed",
+              "use_codex_file_fallback": true
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "Router": {
+    "default": "openai-codex,gpt-5.3-codex"
+  }
+}
+```
+
+认证管理命令：
+
+```shell
+ccr auth openai import-codex --profile default
+ccr auth openai login --profile default
+ccr auth openai list
+ccr auth openai status --profile default
+ccr auth openai logout --profile default
+```
+
+### 7. 预设管理
 
 预设允许您轻松保存、共享和重用配置。您可以将当前配置导出为预设，并从文件或 URL 安装预设。
 
@@ -269,7 +318,7 @@ ccr preset delete my-preset
 │   └── manifest.json    # 包含配置和元数据
 ```
 
-### 7. Activate 命令（环境变量设置）
+### 8. Activate 命令（环境变量设置）
 
 `activate` 命令允许您在 shell 中全局设置环境变量，使您能够直接使用 `claude` 命令或将 Claude Code Router 与使用 Agent SDK 构建的应用程序集成。
 

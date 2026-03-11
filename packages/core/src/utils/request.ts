@@ -1,5 +1,19 @@
-import { ProxyAgent } from "undici";
+import { ProxyAgent, fetch } from "undici";
 import { UnifiedChatRequest } from "../types/llm";
+
+const proxyAgents = new Map<string, ProxyAgent>();
+
+function getProxyAgent(proxyUrl: string): ProxyAgent {
+  const normalized = new URL(proxyUrl).toString();
+  const cached = proxyAgents.get(normalized);
+  if (cached) {
+    return cached;
+  }
+
+  const agent = new ProxyAgent(normalized);
+  proxyAgents.set(normalized, agent);
+  return agent;
+}
 
 export function sendUnifiedRequest(
   url: URL | string,
@@ -39,9 +53,7 @@ export function sendUnifiedRequest(
   };
 
   if (config.httpsProxy) {
-    (fetchOptions as any).dispatcher = new ProxyAgent(
-      new URL(config.httpsProxy).toString()
-    );
+    (fetchOptions as any).dispatcher = getProxyAgent(config.httpsProxy);
   }
   logger?.debug(
     {

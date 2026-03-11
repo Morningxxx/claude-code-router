@@ -247,6 +247,10 @@ async function getServer(options: RunOptions = {}) {
   serverInstance.addHook("onSend", (req: any, reply: any, payload: any, done: any) => {
     if (req.sessionId && req.pathname.endsWith("/v1/messages")) {
       if (payload instanceof ReadableStream) {
+        if (req.provider === "openai-codex") {
+          return done(null, payload);
+        }
+
         if (req.agents) {
           const abortController = new AbortController();
           const eventStream = payload.pipeThrough(new SSEParserTransform())
