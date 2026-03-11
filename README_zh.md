@@ -43,6 +43,7 @@ npm install -g @anthropic-ai/claude-code
 npm install -g @musistudio/claude-code-router
 ```
 
+
 ### 2. 配置
 
 创建并配置您的 `~/.claude-code-router/config.json` 文件。有关更多详细信息，您可以参考 `config.example.json`。
@@ -279,6 +280,49 @@ ccr auth openai list
 ccr auth openai status --profile default
 ccr auth openai logout --profile default
 ```
+
+在新机器上的推荐顺序：
+
+1. 安装这个分支的构建版本
+2. 配置 `PROXY_URL`，确保 CCR 能访问 `chatgpt.com`
+3. 如果已有 Codex 登录态，导入：
+   `ccr auth openai import-codex --profile default`
+4. 或直接登录：
+   `ccr auth openai login --profile default`
+5. 重启服务：
+   `ccr restart`
+6. 开始使用：
+   `ccr code`
+
+快速运行验证：
+
+```shell
+curl -N -X POST http://127.0.0.1:3456/v1/messages \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "system":"You are a concise assistant.",
+    "stream":true,
+    "max_tokens":64,
+    "messages":[{"role":"user","content":"Reply with exactly: ok"}]
+  }'
+```
+
+正常情况下应返回 Anthropic 风格的 SSE，例如：
+
+```text
+event: message_start
+event: content_block_start
+event: content_block_delta
+...
+```
+
+这个分支当前的注意事项：
+
+- `openai-codex` 当前目标地址是 `https://chatgpt.com/backend-api/codex/responses`
+- 推荐模型是 `gpt-5.3-codex`
+- `openai-codex` 需要和 `openai-responses` 一起使用
+- ChatGPT OAuth 路径通常需要可用代理
+- Codex backend 当前更稳定的方式是流式请求，也就是 `stream=true`
 
 ### 7. 预设管理
 

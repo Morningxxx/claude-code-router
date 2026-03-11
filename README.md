@@ -45,6 +45,7 @@ Then, install Claude Code Router:
 npm install -g @musistudio/claude-code-router
 ```
 
+
 ### 2. Configuration
 
 Create and configure your `~/.claude-code-router/config.json` file. For more details, you can refer to `config.example.json`.
@@ -305,6 +306,49 @@ ccr auth openai list
 ccr auth openai status --profile default
 ccr auth openai logout --profile default
 ```
+
+Recommended setup order on a new machine:
+
+1. Install this branch build.
+2. Set `PROXY_URL` so CCR can reach `chatgpt.com`.
+3. Import existing Codex auth:
+   `ccr auth openai import-codex --profile default`
+4. Or log in directly:
+   `ccr auth openai login --profile default`
+5. Restart the service:
+   `ccr restart`
+6. Start usage:
+   `ccr code`
+
+Quick runtime verification:
+
+```shell
+curl -N -X POST http://127.0.0.1:3456/v1/messages \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "system":"You are a concise assistant.",
+    "stream":true,
+    "max_tokens":64,
+    "messages":[{"role":"user","content":"Reply with exactly: ok"}]
+  }'
+```
+
+Expected result is an Anthropic-style SSE stream such as:
+
+```text
+event: message_start
+event: content_block_start
+event: content_block_delta
+...
+```
+
+Notes for this branch:
+
+- `openai-codex` currently targets `https://chatgpt.com/backend-api/codex/responses`
+- recommended model is `gpt-5.3-codex`
+- `openai-codex` should be used together with `openai-responses`
+- ChatGPT OAuth path usually requires a working proxy
+- the Codex backend currently expects streaming requests, so `stream=true` is the most reliable path
 
 ### 7. Presets Management
 
